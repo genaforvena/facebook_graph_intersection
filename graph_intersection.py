@@ -1,12 +1,7 @@
 import argparse
 import csv
-import json
-import facebook # pip install facebook-sdk
-import subprocess
 import requests # pip install requests
 import urllib
-import urlparse
-import warnings
 
 from bs4 import BeautifulSoup
 
