@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup
 
 DEFAULT_OUTPUT = "intersection_output.csv"
 
-ACCESS_TOKEN = "CAAIyz6lizZCwBAOr9jK0720ZB55kO2FUQ53xKIQd8e1IOOOIZA1WzbGuuP93AWET1TTvJ837cjJA3LrLFoRHal9AZB3lMuXqaBC1JMNbca0EuOxauJMH8ozKVMGxiitilCt8jfCdaI2SvaHjZCLBaZBIvARfCKqi3ZCcksbVXsWsfmyisA5naoCmDNZAV2ZB88ECHuvZCBNJcimQZDZD"
+ACCESS_TOKEN = "CAAIyz6lizZCwBAI4gaZBgoDVq870Sez3WxhYNduFkIgmsHlThVw2Tslh0ZBsErdoUJs3Xp6SiZCchZCS4NtDctZATzZCZCtfMDkELAGxJLo1Njkz9L807GKftC1VZA4CmEU4YnlVDSfc9CPmHZAo7LF4VOkSuJScjnZC80L6pU94WKiFhMWNvRvpitW33B3GZCdjUgA8Gdlww9S6eAZDZD"
 BASE_URL = 'https://graph.facebook.com'
 
 def get_command_line_options():
@@ -60,7 +60,7 @@ class PersonIdNotFoundException(Exception):
 if __name__ == "__main__":
     args = get_command_line_options()
     with open(args.input, 'rb') as csvfile, open(DEFAULT_OUTPUT, "w") as outfile:
-        reader = csv.reader(csvfile, delimiter=',')
+        reader = csv.reader(csvfile.read().splitlines(), delimiter=',')
         writer = csv.writer(outfile, delimiter='|')
         for row in reader:
             base_email, tagret_email = row[0].strip(), row[1].strip()
