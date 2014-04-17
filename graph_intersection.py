@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup
 
 DEFAULT_OUTPUT = "intersection_output.csv"
 
-ACCESS_TOKEN = "CAAIyz6lizZCwBABSKmAFefxEkdRLpjCalG6NHW82vi34Hi3GHe6T2gJkh9tHkgXciCpD88ZBdrGRbXhswHYsrSZBGPZAWFxEwsfOueybXtvKaW4so2ZAdCXOKK17mWphLsy7zJJVZAK7bDsyU28hvhQVDov1mZBabmozjEcI0ANq9Cmm0ftVr5lINPi2aDa4VyUZC6kRJRKk6wZDZD"
+ACCESS_TOKEN = "CAAIyz6lizZCwBADl1IWFlikGQrnwHyhoKPWhbUX3PwkZCbwhlQxAut9reXXpmTLTymOdPtF1kJpwxOF4MfIy3w8axZCgAk4KQW6RbBZBxadlqC6jLZAWXdcM8sMzv4VEFDKMrgYnbAXHzGPLfeEz8g6chZC8TeyfCmzVvIVvo8NRSj4YPOKeU2KfmooKl8aCPVcJ3mBGiJQAZDZD"
 BASE_URL = 'https://graph.facebook.com'
 
 def get_command_line_options():
@@ -40,13 +40,20 @@ class IntersectionSearcher(object):
             reader = csv.reader(csvfile.read().splitlines(), delimiter=',')
             for row in reader:
                 base_email, target_email = row[0].strip(), row[1].strip()
+
                 try:
-                    base_person_id, target_person_id = self._get_person_id(base_email), self._get_person_id(target_email)
+                    base_person_id = self._get_person_id(base_email)
                     self._base_emails_and_ids.append({self.ID: base_person_id, self.EMAIL: base_email})
+                except PersonIdNotFoundException:
+                    print ["FACEBOOK IDs NOT FOUND FOR: " + base_email]
+                    self._not_found_emails.append(base_email)
+
+                try:
+                    target_person_id = self._get_person_id(target_email)
                     self._target_emails_and_ids.append({self.ID: target_person_id, self.EMAIL: target_email})
                 except PersonIdNotFoundException:
-                    print ["FACEBOOK IDs NOT FOUND FOR: " + base_email + " " + target_email]
-                    self._not_found_emails(row)
+                    print ["FACEBOOK IDs NOT FOUND FOR: " + target_email]
+                    self._not_found_emails.append(target_email)
 
     def find_intersections_and_print(self):
         with open(self._output_file, "w") as outfile:
