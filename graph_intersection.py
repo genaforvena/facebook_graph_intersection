@@ -11,7 +11,7 @@ from bs4 import BeautifulSoup
 
 DEFAULT_OUTPUT = "intersection_output.csv"
 
-ACCESS_TOKEN = "CAAIyz6lizZCwBAOikQqzCLm19xTvImdoQcRgaqZAqs39oStVR0xcv3uujNZCoY9t6kkb7x9VndgpC4gJrqZB5sHSZBYOrZBOxU5Tpb2JRCyieZCGdflzk4KfB0NpJzZAQwZBIGxBg9IEYRwPhWqUPwZAOCI2eZB5xRThTASuxRzc8T6GfoRZC8gNa7nQGSedjE1AxSLZC9utFlrOWtgZDZD"
+ACCESS_TOKEN = "CAAIyz6lizZCwBAEwbB4UJT4cyWpOpHGn1AsImF2lzF6S33CH1ichtqDR70bLanoWRfstq3MvHQOBqEAHknqDIWo8fZCeNq4A0dYMZCvooBdLqoh9ZBWlID00EjGBtuLaEIbbI8Wk4jLH12lZBGhE64vnTiLWFrIqGKa27aCJJySVo81yB30DLZB50Da1uNBr4qNTjWp0313wZDZD"
 BASE_URL = 'https://graph.facebook.com'
 
 def get_command_line_options():
@@ -23,8 +23,8 @@ def get_command_line_options():
         python graph_intersection.py input_csv_file_path''')
 
     argparser.add_argument('input')
-    #argparser.add_argument('login')
-    #argparser.add_argument('password')
+    argparser.add_argument('login')
+    argparser.add_argument('password')
 
     args = argparser.parse_args()
     return args
@@ -68,33 +68,22 @@ class IntersectionSearcher(object):
                 for target in self._target_emails_and_ids:
                     intersections_list = self._are_friends(base[self.ID], target[self.ID])
                     #print base[self.EMAIL], " and ", target[self.EMAIL], " intercestions are: ", intersections_list
-                    #result_row_list = [("%s, %s") % (base[self.EMAIL], target[self.EMAIL])] + intersections_list
-                    if intersections_list:
-                        are_friends = True
-                    else:
-                        are_friends = False
-                    result_row_list = [("%s, %s") % (base[self.EMAIL], target[self.EMAIL])] + [str(are_friends)]
+                    result_row_list = [("%s, %s") % (base[self.EMAIL], target[self.EMAIL])] + intersections_list
+                    print result_row_list
                     writer.writerow([x.encode("utf-8") for x in result_row_list])
 
     def _get_person_id(self, email):
-        request = "https://www.facebook.com/search.php?q=" + urllib.quote_plus(email)
-        response = self.browser.get(request)
-        # with open("pages/" + email[:4] + ".html", "w") as f:
-        #     f.write(response)
-        soup = BeautifulSoup(response)
-        try:
-            person_name_div = soup.find_all("div", attrs={'class': 'instant_search_title'})[0].find("a")
-            onclick_text = person_name_div.attrs["onclick"]
-            uid = onclick_text.split('"id":')[-1].split(",")[0]
-        except Exception:
-            raise PersonIdNotFoundException()
-        return uid
+        return browser.get_person_id(email)
 
     def _get_intersections(self, id1, id2):
         return self._make_request("mutualfriends", id1, id2)
 
     def _are_friends(self, id1, id2):
-        return self._make_request("friends", id1, id2)
+        response = self._make_request("friends", id1, id2)
+        if response:
+            return [str(True)]
+        else:
+            return [str(False)]
 
     def _make_request(self, request, id1, id2):
         query = "/%s/" % id1 + request + "/%s" % id2
@@ -110,6 +99,19 @@ class SimpleBrowser(object):
     def get(self, request):
         return requests.get(request).text
 
+    def get_person_id(self, email):
+        request = "https://www.facebook.com/search.php?q=" + urllib.quote_plus(email)
+        response = self.browser.get(request)
+        with open("pages/" + email[:4] + ".html", "w") as f:
+             f.write(response)
+        soup = BeautifulSoup(response)
+        try:
+            person_name_div = soup.find_all("div", attrs={'class': 'instant_search_title'})[0].find("a")
+            onclick_text = person_name_div.attrs["onclick"]
+            uid = onclick_text.split('"id":')[-1].split(",")[0]
+        except Exception:
+            raise PersonIdNotFoundException()
+        return uid
 
 class FacebookAuthBrowser(object):
     def __init__(self, login, password):
@@ -135,6 +137,13 @@ class FacebookAuthBrowser(object):
         self._browser.form['email'] = self._login
         self._browser.form['pass'] = self._password
         self._browser.submit()
+
+    def get_person_id(self, email):
+        request = "https://www.facebook.com/search.php?q=" + urllib.quote_plus(email)
+        response = self.get(request)
+        split_start = "/ajax/hovercard/user.php?id="
+        split_end = '">'
+        return response.split(split_start)[1].split(split_end)[0]
 
     def get(self, request):
         return self._browser.open(request).read()
@@ -162,9 +171,10 @@ def cut_between(s, first, last):
 
 if __name__ == "__main__":
     args = get_command_line_options()
-    #browser = FacebookAuthBrowser(args.login, args.password)
-    #browser.login()
-    searcher = IntersectionSearcher(SimpleBrowser())
+    browser = FacebookAuthBrowser(args.login, args.password)
+    browser.login()
+    # browser = SimpleBrowser()
+    searcher = IntersectionSearcher(browser)
     searcher.read_input_file(args.input)
     searcher.find_intersections_and_print()
 
