@@ -46,20 +46,8 @@ class IntersectionSearcher(object):
             reader = csv.reader(csvfile.read().splitlines(), delimiter=',')
             for row in reader:
                 base_email, target_email = row[0].strip(), row[1].strip()
-
-                try:
-                    base_person_id = self._get_person_id(base_email)
-                    self._base_emails_and_ids.append({self.ID: base_person_id, self.EMAIL: base_email})
-                except PersonIdNotFoundException:
-                    print ["FACEBOOK IDs NOT FOUND FOR: " + base_email]
-                    self._not_found_emails.append(base_email)
-
-                try:
-                    target_person_id = self._get_person_id(target_email)
-                    self._target_emails_and_ids.append({self.ID: target_person_id, self.EMAIL: target_email})
-                except PersonIdNotFoundException:
-                    print ["FACEBOOK IDs NOT FOUND FOR: " + target_email]
-                    self._not_found_emails.append(target_email)
+                self._get_person_id(base_email, self._base_emails_and_ids)
+                self._get_person_id(target_email, self._target_emails_and_ids)
 
     def find_intersections_and_print(self):
         with open(self._output_file, "w") as outfile:
@@ -72,8 +60,14 @@ class IntersectionSearcher(object):
                     print result_row_list
                     writer.writerow([x.encode("utf-8") for x in result_row_list])
 
-    def _get_person_id(self, email):
-        return browser.get_person_id(email)
+    def _get_person_id(self, email, list_to_append):
+        try:
+            person_id = browser.get_person_id(email)
+            list_to_append.append({self.ID: person_id, self.EMAIL: email})
+        except PersonIdNotFoundException:
+            print ["FACEBOOK IDs NOT FOUND FOR: " + email]
+            self._not_found_emails.append(email)
+        return person_id
 
     def _get_intersections(self, id1, id2):
         return self._make_request("mutualfriends", id1, id2)
