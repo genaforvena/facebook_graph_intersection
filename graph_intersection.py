@@ -4,6 +4,7 @@ import cookielib
 import mechanize  # pip install mechanize
 import requests  # pip install requests
 import sys
+import re
 import urllib
 
 from bs4 import BeautifulSoup
@@ -11,7 +12,7 @@ from bs4 import BeautifulSoup
 
 DEFAULT_OUTPUT = "intersection_output.csv"
 
-ACCESS_TOKEN = "CAAIyz6lizZCwBAEH34od2d4IZCHhDnddxiyE8V3Bp3fH4uYtBdpPHUni1NT7SDZAgU7jGil60c2TUPp361ZCqLq733DZAsnT9oXcaDp0XSplee12EYpM97N5I58fsoKhDrABLsht1fLqMwHlMoHcLnoqWRGfTRQosierF1NZC57Fif6DDPmaMQIZA19tHn2eqHZCpxGxXIPMJQZDZD"
+ACCESS_TOKEN = "CAAIyz6lizZCwBAE209CIaaan9VlzOlr9ZAGsLQjb6Xwn8SkULN1JWLS3GvfbmNByF6v7DcLrupq2dfPDWmZAbvIXsZCYeICx4v6eSAk8WAE5aH6gJjULiV2eN2Oh0y3pHCa04AExcKf4Q9eYvGUZCt75FWx6ZC6LSqBVnk3W16sos10K7CiiQEXiGQlBW1HBLk5wnGefDsfQZDZD"
 BASE_URL = 'https://graph.facebook.com'
 
 def get_command_line_options():
@@ -51,7 +52,7 @@ class IntersectionSearcher(object):
                 self._get_person_id(base_email, self._base_emails_and_ids)
                 self._get_person_id(target_email, self._target_emails_and_ids)
 
-    def find_intersections_and_print(self):
+    def check_if_friends_and_print_report(self):
         with open(self._output_file, "w") as outfile:
             writer = csv.writer(outfile, delimiter='|')
             for base in self._base_emails_and_ids:
@@ -62,12 +63,30 @@ class IntersectionSearcher(object):
                     result_row_list = [("%s, %s") % (base[self.EMAIL], target[self.EMAIL])] + intersections_list
                     writer.writerow([x.encode("utf-8") for x in result_row_list])
 
+    def fill_friends_dict(self):
+        for person in (self._base_emails_and_ids + self._target_emails_and_ids):
+            self.get_friends(person[self.ID])
+
+    def get_intersections(self):
+        with open(DEFAULT_OUTPUT, "w+") as f:
+            writer = csv.writer(f, delimiter='|')
+            for target in self._target_emails_and_ids:
+                for base in self._base_emails_and_ids:
+                    target_friends = self._friends_ids_names[target[self.ID]]
+                    base_friends = self._friends_ids_names[base[self.ID]]
+                    target_friends_ids = [x.keys()[0] for x in target_friends]
+                    base_friends_ids = [x.keys()[0] for x in base_friends]
+                    intersections = list(set(target_friends_ids) & set(base_friends_ids))
+                    intersections_list = [self._friends_ids_names[x] for x in intersections]
+                    result_row_list = [("%s, %s") % (base[self.EMAIL], target[self.EMAIL])] + intersections_list
+                    writer.writerow([x.encode("utf-8") for x in result_row_list])
+
     def get_friends(self, id):
         user_page_url = self._get_user_info(id)["link"]
         friends_ids = self.browser.get_friends_ids(user_page_url)
         friend_ids_names = []
         for friend_id in friends_ids:
-            friend_ids_names.append({self.NAME: self._get_user_info(friend_id)[self.NAME], self.ID: friend_id})
+            friend_ids_names.append({friend_id: self._get_user_info(friend_id)[self.NAME]})
         self.friend_ids_names[id] = friend_ids_names
 
     @property
@@ -101,7 +120,6 @@ class IntersectionSearcher(object):
         except:
             print "CHECK YOU ACCESS TOKEN"
             sys.exit(1)
-
 
 class SimpleBrowser(object):
     def get(self, request):
@@ -152,7 +170,8 @@ class FacebookAuthBrowser(object):
         response = self.get(request)
         split_start = "/ajax/hovercard/user.php?id="
         split_end = '">'
-        return response.split(split_start)[1].split(split_end)[0]
+        str_with_id = response.split(split_start)[1].split(split_end)[0]
+        return self._extract_id_from_string(str_with_id)
 
     def get_friends_ids(self, user_page_url):
         request = user_page_url + "/friends"
@@ -163,7 +182,8 @@ class FacebookAuthBrowser(object):
         found_ids = []
         for x in response.split(split_start):
             try:
-                found_ids.append(x.split(split_end)[0])
+                str_with_id = x.split(split_end)[0]
+                found_ids.append(self._extract_id_from_string(str_with_id))
             except:
                 continue
         return found_ids[1:]
@@ -171,6 +191,8 @@ class FacebookAuthBrowser(object):
     def get(self, request):
         return self._browser.open(request).read()
 
+    def _extract_id_from_string(self, string):
+        return re.findall(r'\d+',string)[0]
 
 class PersonIdNotFoundException(Exception):
     pass
@@ -194,10 +216,12 @@ def cut_between(s, first, last):
 
 if __name__ == "__main__":
     args = get_command_line_options()
+
     browser = FacebookAuthBrowser(args.login, args.password)
     browser.login()
-    # browser = SimpleBrowser()
+
     searcher = IntersectionSearcher(browser)
     searcher.read_input_file_and_get_user_ids(args.input)
-    searcher.find_intersections_and_print()
+    searcher.fill_friends_dict()
+    searcher.get_intersections()
 

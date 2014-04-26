@@ -39,7 +39,7 @@ class IntersectionSearcherTest(unittest.TestCase):
     def test_get_friends(self):
         self.searcher._get_user_info = mock.Mock(return_value={ID:"513948430", NAME:"John Doe", "link":"dsdfg"})
 
-        result_should_be = {"123": [{ID:"513948430", NAME:"John Doe"}]}
+        result_should_be = {"123": [{"513948430":"John Doe"}]}
         self.searcher.get_friends("123")
         self.assertEqual(result_should_be, self.searcher.friend_ids_names)
 
