@@ -25,3 +25,4 @@ class FacebookAuthBrowserTest(unittest.TestCase):
         self.assertIn(results_should_be[0], results)
         self.assertIn(results_should_be[1], results)
         self.assertIn(results_should_be[2], results)
+

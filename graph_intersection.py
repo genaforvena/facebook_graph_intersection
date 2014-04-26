@@ -97,8 +97,6 @@ class SimpleBrowser(object):
     def get_person_id(self, email):
         request = "https://www.facebook.com/search.php?q=" + urllib.quote_plus(email)
         response = self.browser.get(request)
-        with open("pages/" + email[:4] + ".html", "w") as f:
-             f.write(response)
         soup = BeautifulSoup(response)
         try:
             person_name_div = soup.find_all("div", attrs={'class': 'instant_search_title'})[0].find("a")
@@ -146,8 +144,16 @@ class FacebookAuthBrowser(object):
     def get_friends(self, user_page_url):
         request = user_page_url + "/friends"
         response = self.get(request)
-        with open("test_friends.html", "w+") as f:
-            f.write(response)
+        split_start = "/ajax/hovercard/user.php?id="
+        split_end = '&'
+
+        found_ids = []
+        for x in response.split(split_start):
+            try:
+                found_ids.append(x.split(split_end)[0])
+            except:
+                continue
+        return found_ids[1:]
 
     def get(self, request):
         return self._browser.open(request).read()
