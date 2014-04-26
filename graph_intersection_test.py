@@ -3,8 +3,8 @@ import mock
 import requests
 import graph_intersection
 
-LOGIN = "ilyailiila@gmail.com"
-PASSWORD = "moil13118"
+LOGIN = "dummnyemail@mail.com"
+PASSWORD = "dummypassword"
 
 ID = graph_intersection.IntersectionSearcher.ID
 NAME = graph_intersection.IntersectionSearcher.NAME
