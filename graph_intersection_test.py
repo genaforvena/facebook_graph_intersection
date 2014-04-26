@@ -33,12 +33,13 @@ class FacebookAuthBrowserTest(unittest.TestCase):
 class IntersectionSearcherTest(unittest.TestCase):
     def setUp(self):
         browser = mock.Mock()
-        browser.get_friends_ids = mock.Mock(return_value=["755770284", "513948430"])
+        browser.get_friends_ids = mock.Mock(return_value=["513948430"])
         self.searcher = graph_intersection.IntersectionSearcher(browser)
 
     def test_get_friends(self):
-        requests.get = mock.Mock(return_value={ID:"74353",
-                                                NAME:"John Doe"})
-        result_should_be = {"123": [{ID:"755770284", NAME:"John Doe"}, {ID:"513948430", NAME:"John Doe"}]}
+        self.searcher._get_user_info = mock.Mock(return_value={ID:"513948430", NAME:"John Doe", "link":"dsdfg"})
+
+        result_should_be = {"123": [{ID:"513948430", NAME:"John Doe"}]}
+        self.searcher.get_friends("123")
         self.assertEqual(result_should_be, self.searcher.friend_ids_names)
 

@@ -63,12 +63,19 @@ class IntersectionSearcher(object):
                     writer.writerow([x.encode("utf-8") for x in result_row_list])
 
     def get_friends(self, id):
-        user_page_url = requests.get(BASE_URL + "/" + id + "?access_token=" + ACCESS_TOKEN).json()["link"]
-        friends_ids = browser.get_friends_ids(user_page_url)
+        user_page_url = self._get_user_info(id)["link"]
+        friends_ids = self.browser.get_friends_ids(user_page_url)
+        friend_ids_names = []
+        for friend_id in friends_ids:
+            friend_ids_names.append({self.NAME: self._get_user_info(friend_id)[self.NAME], self.ID: friend_id})
+        self.friend_ids_names[id] = friend_ids_names
 
     @property
     def friend_ids_names(self):
         return self._friends_ids_names
+
+    def _get_user_info(self, id):
+        return requests.get(BASE_URL + "/" + id + "?access_token=" + ACCESS_TOKEN).json()
 
     def _get_person_id(self, email, list_to_append):
         try:
