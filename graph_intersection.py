@@ -33,6 +33,7 @@ def get_command_line_options():
 class IntersectionSearcher(object):
     ID = "id"
     EMAIL = "email"
+    NAME = "name"
 
     def __init__(self, browser):
         self.browser = browser
@@ -40,6 +41,7 @@ class IntersectionSearcher(object):
         self._base_emails_and_ids = []
         self._target_emails_and_ids = []
         self._not_found_emails = []
+        self._friends_ids_names = {}
 
     def read_input_file_and_get_user_ids(self, input_file_path):
         with open(input_file_path, 'rb') as csvfile:
@@ -55,10 +57,18 @@ class IntersectionSearcher(object):
             for base in self._base_emails_and_ids:
                 for target in self._target_emails_and_ids:
                     intersections_list = self._are_friends(base[self.ID], target[self.ID])
-                    self._get_friends(target[self.ID])
+                    self.get_friends(target[self.ID])
                     print base[self.EMAIL], " and ", target[self.EMAIL], " intercestions are: ", intersections_list
                     result_row_list = [("%s, %s") % (base[self.EMAIL], target[self.EMAIL])] + intersections_list
                     writer.writerow([x.encode("utf-8") for x in result_row_list])
+
+    def get_friends(self, id):
+        user_page_url = requests.get(BASE_URL + "/" + id + "?access_token=" + ACCESS_TOKEN).json()["link"]
+        friends_ids = browser.get_friends_ids(user_page_url)
+
+    @property
+    def friend_ids_names(self):
+        return self._friends_ids_names
 
     def _get_person_id(self, email, list_to_append):
         try:
@@ -68,10 +78,6 @@ class IntersectionSearcher(object):
             print ["FACEBOOK IDs NOT FOUND FOR: " + email]
             self._not_found_emails.append(email)
         return person_id
-
-    def _get_friends(self, id):
-        user_page_url = requests.get(BASE_URL + "/" + id + "?access_token=" + ACCESS_TOKEN).json()["link"]
-        return browser.get_friends(user_page_url)
 
     def _are_friends(self, id1, id2):
         response = self._make_request("friends", id1, id2)
@@ -141,7 +147,7 @@ class FacebookAuthBrowser(object):
         split_end = '">'
         return response.split(split_start)[1].split(split_end)[0]
 
-    def get_friends(self, user_page_url):
+    def get_friends_ids(self, user_page_url):
         request = user_page_url + "/friends"
         response = self.get(request)
         split_start = "/ajax/hovercard/user.php?id="
