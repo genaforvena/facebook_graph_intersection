@@ -191,8 +191,9 @@ class FacebookAuthBrowser(object):
     def get(self, request):
         return self._browser.open(request).read()
 
-    def _extract_id_from_string(self, string):
-        return re.findall(r'\d+',string)[0]
+    @staticmethod
+    def _extract_id_from_string(string):
+        return re.findall(r'\d+', string)[0]
 
 class PersonIdNotFoundException(Exception):
     pass
